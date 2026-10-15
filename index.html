@@ -1,0 +1,851 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>五右衛門メニュー暗記トレーナー</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Yu Gothic", sans-serif;
+  background: #f4f3fb;
+  color: #26233a;
+}
+
+main {
+  max-width: 760px;
+  margin: auto;
+}
+
+h1 {
+  color: #5945c7;
+  font-size: 27px;
+}
+
+.panel {
+  background: white;
+  padding: 20px;
+  margin: 15px 0;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px #0000000d;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button, input, select {
+  font: inherit;
+  padding: 11px;
+  border-radius: 9px;
+}
+
+button {
+  border: none;
+  background: #604bd1;
+  color: white;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #eae7ff;
+  color: #4433a3;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input, select {
+  border: 1px solid #ddd;
+  max-width: 100%;
+}
+
+.big {
+  font-size: 23px;
+  font-weight: bold;
+  line-height: 1.6;
+  margin: 22px 0;
+}
+
+.hint {
+  background: #f0edff;
+  padding: 14px;
+  border-radius: 10px;
+  line-height: 1.8;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.dish-image {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  max-height: 300px;
+  object-fit: contain;
+  margin: 15px auto;
+  border-radius: 12px;
+  background: #f7f7f7;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.options button {
+  background: white;
+  color: #29263c;
+  border: 1px solid #ddd;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.options button.correct {
+  background: #e4f7ec;
+  border-color: #198754;
+}
+
+.options button.wrong {
+  background: #ffe9e9;
+  border-color: #d33;
+}
+
+.feedback {
+  margin-top: 15px;
+  font-weight: bold;
+  line-height: 1.7;
+}
+
+.good {
+  color: #16804b;
+}
+
+.bad {
+  color: #c33;
+}
+
+.item {
+  border-bottom: 1px solid #eee;
+  padding: 12px 0;
+  line-height: 1.7;
+}
+
+.item img {
+  display: block;
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.small {
+  color: #777;
+  font-size: 13px;
+}
+
+@media (min-width: 550px) {
+  .options {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<h1>五右衛門メニュー暗記トレーナー</h1>
+<p>料理の見た目と名前を覚えて、研修に備えよう！</p>
+
+<div class="tabs">
+  <button onclick="showMode('cards')">単語帳</button>
+  <button onclick="showMode('quiz')">画像4択クイズ</button>
+  <button onclick="showMode('typing')">名前入力</button>
+  <button onclick="showMode('list')">メニュー一覧</button>
+</div>
+
+<div class="panel">
+  <label for="category">カテゴリ：</label>
+  <select id="category" onchange="changeCategory()">
+    <option value="すべて">すべて</option>
+    <option value="ミートソース">ミートソース</option>
+    <option value="ペペロンチーノ">ペペロンチーノ</option>
+    <option value="トマトソース">トマトソース</option>
+    <option value="クリームソース">クリームソース</option>
+    <option value="和風">和風</option>
+    <option value="たらこ・明太子">たらこ・明太子</option>
+    <option value="カルボナーラ">カルボナーラ</option>
+    <option value="スープスパゲッティ">スープスパゲッティ</option>
+    <option value="その他">その他</option>
+  </select>
+</div>
+
+<!-- 単語帳 -->
+<section id="cards" class="panel">
+  <h2>単語帳</h2>
+  <p class="small" id="cardCount"></p>
+
+  <img id="cardImage" class="dish-image hidden" alt="料理画像">
+
+  <div id="cardName" class="big"></div>
+  <div id="cardHint" class="hint hidden"></div>
+
+  <p>
+    <button id="hintButton" onclick="revealHint()">ヒントを見る</button>
+  </p>
+
+  <button class="secondary" onclick="moveCard(-1)">← 前へ</button>
+  <button onclick="moveCard(1)">次へ →</button>
+  <button class="secondary" onclick="shuffleCards()">シャッフル</button>
+</section>
+
+<!-- 画像4択クイズ -->
+<section id="quiz" class="panel hidden">
+  <h2>画像4択クイズ</h2>
+  <p id="quizProgress" class="small"></p>
+
+  <div id="quizQuestion" class="big">
+    この料理の正式名称は？
+  </div>
+
+  <img id="quizImage" class="dish-image hidden" alt="問題の料理画像">
+
+  <div id="quizImageFallback" class="small hidden">
+    画像が設定されていません。メニューの image に画像URLを登録してください。
+  </div>
+
+  <div id="quizOptions" class="options"></div>
+
+  <div id="quizFeedback" class="feedback"></div>
+
+  <p>
+    <button onclick="newQuiz()">次の問題</button>
+  </p>
+</section>
+
+<!-- 名前入力 -->
+<section id="typing" class="panel hidden">
+  <h2>名前入力テスト</h2>
+
+  <div id="typingHint" class="hint"></div>
+
+  <img id="typingImage" class="dish-image hidden" alt="料理画像">
+
+  <p>
+    <input id="typingInput" style="width:100%"
+           placeholder="正式な料理名を入力">
+  </p>
+
+  <button onclick="checkTyping()">答え合わせ</button>
+  <button class="secondary" onclick="revealTyping()">答えを見る</button>
+  <button class="secondary" onclick="newTyping()">次の問題</button>
+
+  <div id="typingFeedback" class="feedback"></div>
+</section>
+
+<!-- メニュー一覧 -->
+<section id="list" class="panel hidden">
+  <h2>メニュー一覧</h2>
+
+  <input id="search" style="width:100%"
+         placeholder="料理名・食材で検索"
+         oninput="renderList()">
+
+  <div id="menuList"></div>
+</section>
+
+<!-- メニュー追加 -->
+<section class="panel">
+  <h3>メニューを追加</h3>
+  <p class="small">料理名、カテゴリ、画像URLを入力してください。</p>
+
+  <p>
+    <input id="newName" style="width:100%"
+           placeholder="正式な料理名">
+  </p>
+
+  <p>
+    <input id="newCategory" style="width:100%"
+           placeholder="カテゴリ">
+  </p>
+
+  <p>
+    <input id="newHint" style="width:100%"
+           placeholder="覚えるポイント・主な食材">
+  </p>
+
+  <p>
+    <input id="newImage" style="width:100%"
+           placeholder="画像URL（https://...）">
+  </p>
+
+  <button onclick="addMenu()">メニューを追加</button>
+  <button class="secondary" onclick="exportMenus()">データを書き出す</button>
+  <button class="secondary"
+          onclick="document.getElementById('importFile').click()">
+    データを読み込む
+  </button>
+
+  <input id="importFile" type="file" accept=".json"
+         class="hidden" onchange="importMenus(event)">
+</section>
+
+<p class="small">
+公式メニュー：
+<a href="https://www.yomenya-goemon.com/menu/"
+   target="_blank" rel="noopener">洋麺屋五右衛門のお品書き</a>
+<br>
+店舗によって取扱メニューが異なる場合があります。
+</p>
+
+</main>
+
+<script>
+/*
+画像の登録方法：
+
+image: "https://画像ファイルのURL"
+
+画像URLには、ブラウザで直接開ける画像ファイルのURLを指定してください。
+画像が登録されていない場合は、画像を非表示にします。
+*/
+
+let menus = [
+  {
+    name: "五右衛門伝統のミートソース ふわふわパルミジャーノ",
+    category: "ミートソース",
+    hint: "伝統のミートソース・パルミジャーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_meatsauce_img01.webp"
+  },
+  {
+    name: "なすとモッツァレラチーズのカルボナーラミートソース",
+    category: "ミートソース",
+    hint: "なす・モッツァレラ・カルボナーラミートソース",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_meatsauce_img02.webp"
+  },
+  {
+    name: "Wガーリックペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "Wガーリック・ペペロンチーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img01.webp"
+  },
+  {
+    name: "玉子のペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "玉子・ペペロンチーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img02.webp"
+  },
+  {
+    name: "帆立と海老と湯葉のペペロンチーノ 京風だし仕立て",
+    category: "ペペロンチーノ",
+    hint: "帆立・海老・湯葉・京風だし",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img03.webp"
+  },
+  {
+    name: "たっぷり野菜のペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "たっぷり野菜・ペペロンチーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img04.webp"
+  },
+  {
+    name: "海老とアボカドとモッツァレラチーズのジェノベーゼ",
+    category: "ペペロンチーノ",
+    hint: "海老・アボカド・モッツァレラ・ジェノベーゼ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img05.webp"
+  },
+  {
+    name: "紅ズワイガニと海老と本からすみのアーリオオーリオペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "紅ズワイガニ・海老・本からすみ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img06.webp"
+  },
+  {
+    name: "タコのペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "タコ・ペペロンチーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_exvoliveoil_img07.webp"
+  },
+  {
+    name: "トマトとにんにくのスパゲッティー",
+    category: "トマトソース",
+    hint: "トマト・にんにく",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tomatosauce_img01.webp"
+  },
+  {
+    name: "グリルチキンと舞茸と炙りチーズのトマトソース",
+    category: "トマトソース",
+    hint: "グリルチキン・舞茸・炙りチーズ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tomatosauce_img02.webp"
+  },
+  {
+    name: "アマトリチャーナ ローマ風（コロコロベーコンとパルミジャーノーノ）",
+    category: "トマトソース",
+    hint: "ローマ風・コロコロベーコン・パルミジャーノ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tomatosauce_img03.webp"
+  },
+  {
+    name: "たっぷり海老とモッツァレラチーズのトマトクリーム",
+    category: "トマトソース",
+    hint: "海老・モッツァレラ・トマトクリーム",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tomatosauce_img04.webp"
+  },
+  {
+    name: "海老と帆立のクリームソース 温泉卵添え",
+    category: "クリームソース",
+    hint: "海老・帆立・クリームソース・温泉卵",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_creamsauce_img01.webp"
+  },
+  {
+    name: "きのことベーコンの和風バター醤油",
+    category: "和風",
+    hint: "きのこ・ベーコン・和風バター醤油",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_goemonoriginal_img01.webp"
+  },
+  {
+    name: "鶏ささみと梅じその金ゴマソース",
+    category: "和風",
+    hint: "鶏ささみ・梅じそ・金ゴマソース",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_goemonoriginal_img02.webp"
+  },
+  {
+    name: "豚しゃぶとたっぷり野菜の胡麻ダレ仕立て",
+    category: "和風",
+    hint: "豚しゃぶ・野菜・胡麻ダレ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_goemonoriginal_img03.webp"
+  },
+  {
+    name: "イカスミと生ハムのジェノベーゼ",
+    category: "その他",
+    hint: "イカスミ・生ハム・ジェノベーゼ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_goemonoriginal_img04.webp"
+  },
+  {
+    name: "たらこひとすじ（バター風味）",
+    category: "たらこ・明太子",
+    hint: "たらこ・バター風味",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tarakomentaiko_img01.webp"
+  },
+  {
+    name: "明太子と海老としめじの青じそ風味",
+    category: "たらこ・明太子",
+    hint: "明太子・海老・しめじ・青じそ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tarakomentaiko_img02.webp"
+  },
+  {
+    name: "明太子と海老とブロッコリーのクリームソース",
+    category: "たらこ・明太子",
+    hint: "明太子・海老・ブロッコリー・クリームソース",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tarakomentaiko_img03.webp"
+  },
+  {
+    name: "明太子と辛子高菜の博多風",
+    category: "たらこ・明太子",
+    hint: "明太子・辛子高菜・博多風",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_tarakomentaiko_img04.webp"
+  },
+  {
+    name: "具だくさんのカルボナーラ スープスパゲッティ",
+    category: "スープスパゲッティ",
+    hint: "具だくさん・カルボナーラ・スープ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_soup_img01.webp"
+  },
+  {
+    name: "地中海風 カニと海老のトマトクリームスープスパゲッティ",
+    category: "スープスパゲッティ",
+    hint: "地中海風・カニ・海老・トマトクリーム",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_soup_img02.webp"
+  },
+  {
+    name: "たらこと湯葉とモッツァレラチーズのカルボナーラ",
+    category: "カルボナーラ",
+    hint: "たらこ・湯葉・モッツァレラ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_carbonara_img01.webp"
+  },
+  {
+    name: "カマンベールチーズとカリカリベーコンのカルボナーラ",
+    category: "カルボナーラ",
+    hint: "カマンベール・カリカリベーコン",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_carbonara_img02.webp"
+  },
+  {
+    name: "海老とモッツァレラチーズのカルボナーラチリトマトソース",
+    category: "カルボナーラ",
+    hint: "海老・モッツァレラ・チリトマトソース",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_carbonara_img03.webp"
+  },
+  {
+    name: "昭和のナポリタン",
+    category: "その他",
+    hint: "昭和・ナポリタン",
+    image: "https://www.yomenya-goemon.com/images/parts/menu2026/menu_naporitan_img01.webp"
+  },
+  {
+    name: "5種のきのこのポルチーニクリームソース",
+    category: "クリームソース",
+    hint: "5種のきのこ・ポルチーニクリーム",
+    image: "https://www.yomenya-goemon.com/images/parts/menu_autumn2026_img01.webp"
+  },
+  {
+    name: "具だくさん!!カニと帆立と4種きのこのペペロンチーノ",
+    category: "ペペロンチーノ",
+    hint: "カニ・帆立・4種のきのこ",
+    image: "https://www.yomenya-goemon.com/images/parts/menu_autumn2026_img02.webp"
+  },
+  {
+    name: "三元豚ときのこづくしのよくばりスパゲッティー（醤油バター）",
+    category: "和風",
+    hint: "三元豚・きのこ・醤油バター",
+    image: "https://www.yomenya-goemon.com/images/parts/menu_autumn2026_img03.webp"
+  }
+];
+
+let currentCard = 0;
+let currentQuiz = null;
+let currentTyping = null;
+let quizScore = 0;
+let quizTotal = 0;
+let quizLocked = false;
+
+function filteredMenus() {
+  const cat = document.getElementById("category").value;
+  return menus.filter(m => cat === "すべて" || m.category === cat);
+}
+
+function showMode(mode) {
+  ["cards", "quiz", "typing", "list"].forEach(id => {
+    document.getElementById(id).classList.toggle("hidden", id !== mode);
+  });
+
+  if (mode === "cards") renderCard();
+  if (mode === "quiz") newQuiz();
+  if (mode === "typing") newTyping();
+  if (mode === "list") renderList();
+}
+
+function setImage(elementId, url) {
+  const img = document.getElementById(elementId);
+  const fallbackId = elementId === "quizImage" ? "quizImageFallback" : null;
+
+  img.onerror = () => {
+    img.classList.add("hidden");
+    if (fallbackId) {
+      document.getElementById(fallbackId).classList.remove("hidden");
+    }
+  };
+
+  if (fallbackId) {
+    document.getElementById(fallbackId).classList.add("hidden");
+  }
+
+  if (url && /^https?:\/\//i.test(url)) {
+    img.src = url;
+    img.classList.remove("hidden");
+  } else {
+    img.removeAttribute("src");
+    img.classList.add("hidden");
+
+    if (fallbackId) {
+      document.getElementById(fallbackId).classList.remove("hidden");
+    }
+  }
+}
+
+function renderCard() {
+  const list = filteredMenus();
+
+  if (!list.length) {
+    document.getElementById("cardName").textContent = "メニューがありません";
+    document.getElementById("cardCount").textContent = "0品";
+    setImage("cardImage", "");
+    return;
+  }
+
+  currentCard = (currentCard + list.length) % list.length;
+  const m = list[currentCard];
+
+  document.getElementById("cardName").textContent = m.name;
+  document.getElementById("cardHint").textContent = m.hint;
+  document.getElementById("cardHint").classList.add("hidden");
+  document.getElementById("hintButton").classList.remove("hidden");
+  document.getElementById("cardCount").textContent =
+    `${currentCard + 1} / ${list.length}　カテゴリ：${m.category}`;
+
+  setImage("cardImage", m.image);
+}
+
+function revealHint() {
+  document.getElementById("cardHint").classList.remove("hidden");
+  document.getElementById("hintButton").classList.add("hidden");
+}
+
+function moveCard(n) {
+  const list = filteredMenus();
+  if (!list.length) return;
+
+  currentCard = (currentCard + n + list.length) % list.length;
+  renderCard();
+}
+
+function shuffleCards() {
+  currentCard = 0;
+  menus.sort(() => Math.random() - 0.5);
+  renderCard();
+}
+
+function changeCategory() {
+  currentCard = 0;
+  renderCard();
+  renderList();
+}
+
+/* 画像を見て料理名を選ぶ4択クイズ */
+function newQuiz() {
+  const list = filteredMenus();
+
+  if (list.length < 4) {
+    document.getElementById("quizQuestion").textContent =
+      "4択クイズには4品以上のメニューが必要です。";
+    document.getElementById("quizOptions").innerHTML = "";
+    setImage("quizImage", "");
+    return;
+  }
+
+  currentQuiz = list[Math.floor(Math.random() * list.length)];
+  quizLocked = false;
+
+  document.getElementById("quizQuestion").textContent =
+    "この料理の正式名称は？";
+
+  document.getElementById("quizFeedback").textContent = "";
+  document.getElementById("quizFeedback").className = "feedback";
+  document.getElementById("quizProgress").textContent =
+    `正解：${quizScore} / ${quizTotal}`;
+
+  setImage("quizImage", currentQuiz.image);
+
+  const wrong = list
+    .filter(m => m !== currentQuiz)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+
+  const options = [currentQuiz, ...wrong]
+    .sort(() => Math.random() - 0.5);
+
+  const box = document.getElementById("quizOptions");
+  box.innerHTML = "";
+
+  options.forEach(m => {
+    const button = document.createElement("button");
+    button.textContent = m.name;
+    button.onclick = () => answerQuiz(button, m);
+    box.appendChild(button);
+  });
+}
+
+function answerQuiz(button, chosen) {
+  if (quizLocked || !currentQuiz) return;
+
+  quizLocked = true;
+  quizTotal++;
+
+  const correct = chosen === currentQuiz;
+  if (correct) quizScore++;
+
+  document.querySelectorAll("#quizOptions button").forEach(b => {
+    if (b.textContent === currentQuiz.name) {
+      b.classList.add("correct");
+    } else if (b === button) {
+      b.classList.add("wrong");
+    }
+
+    b.disabled = true;
+  });
+
+  const fb = document.getElementById("quizFeedback");
+  fb.textContent = correct
+    ? "正解！ " + currentQuiz.name
+    : "不正解。正解は「" + currentQuiz.name + "」です。";
+
+  fb.className = "feedback " + (correct ? "good" : "bad");
+
+  document.getElementById("quizProgress").textContent =
+    `正解：${quizScore} / ${quizTotal}`;
+}
+
+function newTyping() {
+  const list = filteredMenus();
+  if (!list.length) return;
+
+  currentTyping = list[Math.floor(Math.random() * list.length)];
+
+  document.getElementById("typingHint").textContent =
+    "カテゴリ：" + currentTyping.category +
+    "\nキーワード：" + currentTyping.hint;
+
+  setImage("typingImage", currentTyping.image);
+
+  document.getElementById("typingInput").value = "";
+  document.getElementById("typingFeedback").textContent = "";
+}
+
+function normalize(s) {
+  return s.toLowerCase().replace(/[ 　・、,，!！]/g, "");
+}
+
+function checkTyping() {
+  if (!currentTyping) return;
+
+  const entered = normalize(document.getElementById("typingInput").value);
+  const answer = normalize(currentTyping.name);
+
+  const ok = entered === answer;
+  const fb = document.getElementById("typingFeedback");
+
+  fb.textContent = ok
+    ? "正解！ " + currentTyping.name
+    : "もう一度挑戦してみよう。入力内容を確認してください。";
+
+  fb.className = "feedback " + (ok ? "good" : "bad");
+}
+
+function revealTyping() {
+  if (!currentTyping) return;
+
+  document.getElementById("typingFeedback").textContent =
+    "正式名称：" + currentTyping.name;
+
+  document.getElementById("typingFeedback").className = "feedback";
+}
+
+function renderList() {
+  const searchElement = document.getElementById("search");
+  const query = searchElement.value.toLowerCase();
+  const box = document.getElementById("menuList");
+
+  box.innerHTML = "";
+
+  filteredMenus()
+    .filter(m => (m.name + m.hint + m.category).toLowerCase().includes(query))
+    .forEach(m => {
+      const div = document.createElement("div");
+      div.className = "item";
+
+      const strong = document.createElement("strong");
+      strong.textContent = m.name;
+
+      const small = document.createElement("div");
+      small.className = "small";
+      small.textContent = m.category + "｜" + m.hint;
+
+      div.append(strong, small);
+
+      if (m.image && /^https?:\/\//i.test(m.image)) {
+        const img = document.createElement("img");
+        img.src = m.image;
+        img.alt = m.name;
+        img.onerror = () => img.remove();
+        div.appendChild(img);
+      }
+
+      box.appendChild(div);
+    });
+}
+
+function addMenu() {
+  const name = document.getElementById("newName").value.trim();
+  const category =
+    document.getElementById("newCategory").value.trim() || "その他";
+  const hint =
+    document.getElementById("newHint").value.trim() || category;
+  const image = document.getElementById("newImage").value.trim();
+
+  if (!name) {
+    alert("料理名を入力してください。");
+    return;
+  }
+
+  menus.push({ name, category, hint, image });
+
+  document.getElementById("newName").value = "";
+  document.getElementById("newCategory").value = "";
+  document.getElementById("newHint").value = "";
+  document.getElementById("newImage").value = "";
+
+  renderCard();
+  renderList();
+
+  alert("メニューを追加しました。");
+}
+
+function exportMenus() {
+  const blob = new Blob(
+    [JSON.stringify(menus, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "goemon-menus.json";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importMenus(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+
+      if (!Array.isArray(imported)) throw new Error();
+
+      menus = imported
+        .filter(m => m.name && m.category && m.hint)
+        .map(m => ({
+          name: String(m.name),
+          category: String(m.category),
+          hint: String(m.hint),
+          image: typeof m.image === "string" ? m.image : ""
+        }));
+
+      currentCard = 0;
+      renderCard();
+      renderList();
+
+      alert("メニューを読み込みました。");
+    } catch (e) {
+      alert("JSONファイルを読み込めませんでした。");
+    }
+
+    event.target.value = "";
+  };
+
+  reader.readAsText(file);
+}
+
+renderCard();
+</script>
+</body>
+</html>
